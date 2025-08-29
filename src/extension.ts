@@ -1,103 +1,217 @@
+// extension.ts
 import * as vscode from 'vscode';
 import fetch from 'node-fetch';
+import AbortControllerPkg from 'abort-controller';
 
-/** Apply filters based on user + AI */
-function applyFilters(text: string, options?: string[]): string {
-    const config = vscode.workspace.getConfiguration("filter-syn");
-    const removeNumbers = options?.includes('Remove Numbers') ?? config.get("filter-syn.removeNumbers");
-    const removePunctuation = options?.includes('Remove Punctuation') ?? config.get("filter-syn.removePunctuation");
-    const toLowercase = options?.includes('Convert to Lowercase') ?? config.get("filter-syn.toLowercase");
+const AbortController = (AbortControllerPkg as any).default || AbortControllerPkg;
 
-    if (removeNumbers) text = text.replace(/[0-9]/g, '');
-    if (removePunctuation) text = text.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '');
-    if (toLowercase) text = text.toLowerCase();
+type AIResult = {
+    removeNumbers: boolean;
+    removePunctuation: boolean;
+    toLowercase: boolean;
+    confidences?: Record<string, number>;
+    model_version?: string;
+};
+
+const LANG_COMMENTS: Record<string, { line: string[]; blockStart?: string; blockEnd?: string }> = {
+    py: { line: ['#'] },
+    python: { line: ['#'] },
+    js: { line: ['//'], blockStart: '/*', blockEnd: '*/' },
+    javascript: { line: ['//'], blockStart: '/*', blockEnd: '*/' },
+    ts: { line: ['//'], blockStart: '/*', blockEnd: '*/' },
+    typescript: { line: ['//'], blockStart: '/*', blockEnd: '*/' },
+    html: { line: [], blockStart: '<!--', blockEnd: '-->' },
+    css: { line: [], blockStart: '/*', blockEnd: '*/' },
+    json: { line: [] },
+    md: { line: [] },
+};
+
+function getConfig<T = any>(key: string, def?: T): T {
+    return vscode.workspace.getConfiguration('filter-syn').get<T>(key, def as T);
+}
+
+/** Rough feature extractor */
+function extractFeatures(text: string, languageId: string) {
+    const lines = text.split(/\r?\n/);
+    const lineCount = Math.max(1, lines.length);
+    const tokens = text.match(/\b[\w$]+\b/g) ?? [];
+    const keywordCount = tokens.length;
+
+    const cm = LANG_COMMENTS[languageId] || LANG_COMMENTS[languageId?.split('-')[0]] || { line: [] };
+    let commentLines = 0;
+    let inBlock = false;
+
+    for (const raw of lines) {
+        const l = raw.trim();
+        if (cm.blockStart && cm.blockEnd) {
+            if (l.includes(cm.blockStart)) inBlock = true;
+            if (inBlock) commentLines++;
+            if (l.includes(cm.blockEnd)) inBlock = false;
+        }
+        if (cm.line?.some(sym => l.startsWith(sym))) commentLines++;
+    }
+    const commentRatio = Math.min(1, commentLines / lineCount);
+
+    // Very rough unused import heuristic
+    let unusedImports = 0;
+    try {
+        if (['py', 'python'].includes(languageId)) {
+            const importNames = (text.match(/^\s*(?:from\s+([\w.]+)\s+import\s+([\w*,\s]+)|import\s+([\w.]+))/gm) || [])
+                .map(s => s.replace(/\s+/g, ' '));
+            let used = 0;
+            for (const imp of importNames) {
+                const names = imp.includes(' import ')
+                    ? imp.split(' import ')[1].split(',').map(s => s.trim().split(' as ')[0])
+                    : [imp.replace(/^\s*import\s+/, '').trim().split(' as ')[0]];
+                for (const n of names) {
+                    if (!n || n === '*') continue;
+                    const re = new RegExp(`\\b${n}\\b`);
+                    if (re.test(text)) used++;
+                }
+            }
+            unusedImports = Math.max(0, importNames.length - used);
+        } else if (['js', 'javascript', 'ts', 'typescript'].includes(languageId)) {
+            const imports = text.match(/^\s*import\s+.*?from\s+['"][^'"]+['"];?/gm) || [];
+            let used = 0;
+            for (const imp of imports) {
+                const names = (imp.match(/\{([^}]+)\}/)?.[1] || '')
+                    .split(',')
+                    .map(s => s.trim().split(' as ')[0])
+                    .filter(Boolean);
+                for (const n of names) {
+                    const re = new RegExp(`\\b${n}\\b`);
+                    if (re.test(text)) used++;
+                }
+            }
+            unusedImports = Math.max(0, imports.length - used);
+        }
+    } catch {
+        unusedImports = 0;
+    }
+
+    // Normalize VS Code languageId to our model’s expected file_type
+    let file_type = languageId;
+    if (languageId === 'python') file_type = 'py';
+    if (languageId === 'javascript') file_type = 'js';
+    if (languageId === 'typescript') file_type = 'ts';
+
+    return { keyword_count: keywordCount, line_count: lineCount, comment_ratio: commentRatio, unused_imports: unusedImports, file_type };
+}
+
+/** Debounce wrapper (per-document) */
+const pendingTimers = new Map<string, NodeJS.Timeout>();
+function debounce<T extends (...args: any[]) => void>(key: string, fn: T, wait = 300) {
+    return (...args: Parameters<T>) => {
+        if (pendingTimers.has(key)) clearTimeout(pendingTimers.get(key)!);
+        const t = setTimeout(() => fn(...args), wait);
+        pendingTimers.set(key, t);
+    };
+}
+
+/** Apply filters */
+function applyFilters(text: string, opts: { removeNumbers?: boolean; removePunctuation?: boolean; toLowercase?: boolean }) {
+    if (opts.removeNumbers) text = text.replace(/[0-9]/g, '');
+    if (opts.removePunctuation) text = text.replace(/[.,/#!$%^&*;:{}=\-_`~()[\]<>]/g, '');
+    if (opts.toLowercase) text = text.toLowerCase();
     return text;
 }
 
-/** Call AI backend for suggestion */
-async function getAISuggestion(text: string, fileType: string): Promise<{removeNumbers: boolean, removePunctuation: boolean, toLowercase: boolean}> {
-    // Compute features
-    const lines = text.split('\n');
-    const lineCount = lines.length;
-    const keywordCount = text.split(/\s+/).length;
-    const commentLines = lines.filter(l => l.trim().startsWith('//') || l.trim().startsWith('#') || l.trim().startsWith('/*'));
-    const commentRatio = commentLines.length / Math.max(lineCount, 1);
-    const unusedImports = 0; // placeholder
-
+/** Call AI backend */
+async function getAISuggestion(payload: any, minConfidence: number): Promise<AIResult | null> {
+    const url = getConfig<string>('aiServerUrl', 'http://127.0.0.1:5001/v1/predict');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), getConfig<number>('aiRequestTimeoutMs', 3000));
     try {
-        const response = await fetch('http://127.0.0.1:5001/predict', {
+        const res = await fetch(url, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ keyword_count: keywordCount, line_count: lineCount, comment_ratio: commentRatio, unused_imports: unusedImports, file_type: fileType })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instance: payload, min_confidence: minConfidence }),
+            signal: controller.signal as any,
         });
-        const data = await response.json();
-        return {
-            removeNumbers: data.removeNumbers === 1,
-            removePunctuation: data.removePunctuation === 1,
-            toLowercase: data.toLowercase === 1
-        };
-    } catch (err) {
-        console.error('AI suggestion error:', err);
-        return {removeNumbers: false, removePunctuation: false, toLowercase: false};
+        clearTimeout(timeout);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as AIResult;
+        return data;
+    } catch (e) {
+        clearTimeout(timeout);
+        console.error('[Filter-Syn AI] request failed:', e);
+        return null;
     }
 }
 
 /** Replace text in editor */
 async function replaceText(editor: vscode.TextEditor, range: vscode.Range, text: string) {
     const success = await editor.edit(editBuilder => editBuilder.replace(range, text));
-    if (!success) vscode.window.showErrorMessage('Failed to apply changes.');
+    if (!success) vscode.window.showErrorMessage('Filter-Syn: Failed to apply changes.');
 }
 
-/** Get full document range */
-function getFullRange(doc: vscode.TextDocument): vscode.Range {
-    return new vscode.Range(doc.lineAt(0).range.start, doc.lineAt(doc.lineCount - 1).range.end);
+/** Helpers */
+function getFullRange(doc: vscode.TextDocument) {
+    return new vscode.Range(doc.lineAt(0).range.start, doc.lineAt(Math.max(0, doc.lineCount - 1)).range.end);
 }
+const undoStack: { range: vscode.Range; text: string }[] = [];
+function saveForUndo(range: vscode.Range, text: string) { undoStack.push({ range, text }); }
 
-/** Undo stack */
-const undoStack: {range: vscode.Range, text: string}[] = [];
-function saveForUndo(range: vscode.Range, text: string) { undoStack.push({range, text}); }
-
-/** Get active editor */
-function getActiveEditor(): vscode.TextEditor | undefined {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) vscode.window.showInformationMessage('No active editor.');
-    return editor;
-}
-
-/** Activate extension */
+/** Activate */
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Filter-Syn extension is active!');
+    console.log('Filter-Syn extension active');
 
     context.subscriptions.push(vscode.commands.registerCommand('filter-syn.aiFilterSuggestion', async () => {
-        const editor = getActiveEditor(); if (!editor) return;
+        if (!getConfig<boolean>('enableAI', true)) {
+            vscode.window.showInformationMessage('Filter-Syn AI is disabled in settings.');
+            return;
+        }
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) return vscode.window.showInformationMessage('No active editor.');
         const selection = editor.selection;
         const text = selection.isEmpty ? editor.document.getText() : editor.document.getText(selection);
         const range = selection.isEmpty ? getFullRange(editor.document) : selection;
-        const fileType = editor.document.languageId;
 
-        vscode.window.showInformationMessage('Fetching AI suggestion...');
-        const aiResult = await getAISuggestion(text, fileType);
+        const features = extractFeatures(text, editor.document.languageId);
+        const minConf = getConfig<number>('aiMinConfidence', 0.6);
 
-        // Merge AI suggestion with user config
-        const config = vscode.workspace.getConfiguration("filter-syn");
-        const options: string[] = [];
-        if (aiResult.removeNumbers && config.get("filter-syn.removeNumbers")) options.push("Remove Numbers");
-        if (aiResult.removePunctuation && config.get("filter-syn.removePunctuation")) options.push("Remove Punctuation");
-        if (aiResult.toLowercase && config.get("filter-syn.toLowercase")) options.push("Convert to Lowercase");
+        vscode.window.setStatusBarMessage('Filter-Syn: fetching AI suggestion…', 1500);
+        const ai = await getAISuggestion(features, minConf);
 
-        if (options.length > 0) {
-            saveForUndo(range, text);
-            const filtered = applyFilters(text, options);
-            await replaceText(editor, range, filtered);
-            vscode.window.showInformationMessage('AI suggested filter applied!');
-        } else {
-            vscode.window.showInformationMessage('AI did not suggest applying any filter.');
+        if (!ai) {
+            vscode.window.showWarningMessage('Filter-Syn AI: no suggestion (request failed).');
+            return;
         }
+
+        // Merge with user settings: AI can only enable what user permits
+        const cfg = vscode.workspace.getConfiguration('filter-syn');
+        const allowed = {
+            removeNumbers: cfg.get<boolean>('removeNumbers', true),
+            removePunctuation: cfg.get<boolean>('removePunctuation', false),
+            toLowercase: cfg.get<boolean>('toLowercase', false),
+        };
+
+        const finalOpts = {
+            removeNumbers: ai.removeNumbers && allowed.removeNumbers,
+            removePunctuation: ai.removePunctuation && allowed.removePunctuation,
+            toLowercase: ai.toLowercase && allowed.toLowercase,
+        };
+
+        if (!finalOpts.removeNumbers && !finalOpts.removePunctuation && !finalOpts.toLowercase) {
+            vscode.window.showInformationMessage('Filter-Syn AI: no filters suggested above confidence threshold.');
+            return;
+        }
+
+        saveForUndo(range, text);
+        const filtered = applyFilters(text, finalOpts);
+        await replaceText(editor, range, filtered);
+
+        const confs = ai.confidences ? ` (conf: num=${ai.confidences.removeNumbers}, punct=${ai.confidences.removePunctuation}, lower=${ai.confidences.toLowercase})` : '';
+        vscode.window.showInformationMessage(`Filter-Syn AI applied.${confs}`);
     }));
 
-    // Other commands (filterText, filterWholeFile, filterWithOptions, undoLastFilter, previewFilter)
-    // remain unchanged
+    context.subscriptions.push(vscode.commands.registerCommand('filter-syn.undoLastFilter', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || undoStack.length === 0) return vscode.window.showInformationMessage('Nothing to undo.');
+        const last = undoStack.pop()!;
+        await replaceText(editor, last.range, last.text);
+        vscode.window.showInformationMessage('Filter-Syn: undo complete.');
+    }));
 }
 
-/** Deactivate */
 export function deactivate() {}

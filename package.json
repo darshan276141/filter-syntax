@@ -1,13 +1,18 @@
 {
   "name": "filter-syn",
   "displayName": "Filter Syn",
-  "description": "A VS Code extension that filters selected text or entire files with configurable options and AI suggestions.",
-  "version": "0.0.1",
+  "description": "Filter selected text or whole files with configurable options and AI suggestions.",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.80.0"
   },
   "categories": [
     "Other"
+  ],
+  "activationEvents": [
+    "onCommand:filter-syn.aiFilterSuggestion",
+    "onCommand:filter-syn.undoLastFilter",
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -18,71 +23,65 @@
         "category": "Filter-Syn"
       },
       {
-        "command": "filter-syn.filterText",
-        "title": "Filter Selected Text"
-      },
-      {
-        "command": "filter-syn.filterWholeFile",
-        "title": "Filter Whole File"
-      },
-      {
-        "command": "filter-syn.filterWithOptions",
-        "title": "Filter Text (Choose Option)"
-      },
-      {
         "command": "filter-syn.undoLastFilter",
-        "title": "Undo Last Filter"
-      },
-      {
-        "command": "filter-syn.previewFilter",
-        "title": "Preview Filtered Text"
+        "title": "Filter-Syn: Undo Last Filter",
+        "category": "Filter-Syn"
       }
     ],
     "configuration": {
       "type": "object",
       "title": "Filter-Syn Settings",
       "properties": {
+        "filter-syn.enableAI": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable AI-powered suggestions"
+        },
+        "filter-syn.aiServerUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:5001/v1/predict",
+          "description": "URL of the local AI model server"
+        },
+        "filter-syn.aiMinConfidence": {
+          "type": "number",
+          "default": 0.6,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum probability to apply a suggested filter"
+        },
+        "filter-syn.aiRequestTimeoutMs": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 500,
+          "maximum": 20000,
+          "description": "Timeout for AI requests in milliseconds"
+        },
         "filter-syn.removeNumbers": {
           "type": "boolean",
           "default": true,
-          "description": "Remove numbers from text"
+          "description": "Allow removing numbers"
         },
         "filter-syn.removePunctuation": {
           "type": "boolean",
           "default": false,
-          "description": "Remove punctuation from text"
+          "description": "Allow removing punctuation"
         },
         "filter-syn.toLowercase": {
           "type": "boolean",
           "default": false,
-          "description": "Convert text to lowercase"
+          "description": "Allow converting to lowercase"
         }
       }
     },
     "keybindings": [
       {
-        "key": "ctrl+alt+f",
-        "command": "filter-syn.filterWholeFile",
-        "when": "editorTextFocus"
-      },
-      {
-        "key": "ctrl+alt+o",
-        "command": "filter-syn.filterWithOptions",
+        "key": "ctrl+alt+a",
+        "command": "filter-syn.aiFilterSuggestion",
         "when": "editorTextFocus"
       },
       {
         "key": "ctrl+alt+z",
         "command": "filter-syn.undoLastFilter",
-        "when": "editorTextFocus"
-      },
-      {
-        "key": "ctrl+alt+p",
-        "command": "filter-syn.previewFilter",
-        "when": "editorTextFocus"
-      },
-      {
-        "key": "ctrl+alt+a",
-        "command": "filter-syn.aiFilterSuggestion",
         "when": "editorTextFocus"
       }
     ]
@@ -100,10 +99,10 @@
     "@types/vscode": "^1.80.0",
     "esbuild": "^0.25.8",
     "eslint": "^9.32.0",
-    "npm-run-all": "^4.1.5",
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "abort-controller": "^3.0.0",
     "node-fetch": "^2.7.0"
   }
 }
