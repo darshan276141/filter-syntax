@@ -1,0 +1,109 @@
+{
+  "name": "filter-syn",
+  "displayName": "Filter Syn",
+  "description": "A VS Code extension that filters selected text or entire files with configurable options and AI suggestions.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "filter-syn.aiFilterSuggestion",
+        "title": "Filter-Syn: AI Filter Suggestion",
+        "category": "Filter-Syn"
+      },
+      {
+        "command": "filter-syn.filterText",
+        "title": "Filter Selected Text"
+      },
+      {
+        "command": "filter-syn.filterWholeFile",
+        "title": "Filter Whole File"
+      },
+      {
+        "command": "filter-syn.filterWithOptions",
+        "title": "Filter Text (Choose Option)"
+      },
+      {
+        "command": "filter-syn.undoLastFilter",
+        "title": "Undo Last Filter"
+      },
+      {
+        "command": "filter-syn.previewFilter",
+        "title": "Preview Filtered Text"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Filter-Syn Settings",
+      "properties": {
+        "filter-syn.removeNumbers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Remove numbers from text"
+        },
+        "filter-syn.removePunctuation": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove punctuation from text"
+        },
+        "filter-syn.toLowercase": {
+          "type": "boolean",
+          "default": false,
+          "description": "Convert text to lowercase"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "key": "ctrl+alt+f",
+        "command": "filter-syn.filterWholeFile",
+        "when": "editorTextFocus"
+      },
+      {
+        "key": "ctrl+alt+o",
+        "command": "filter-syn.filterWithOptions",
+        "when": "editorTextFocus"
+      },
+      {
+        "key": "ctrl+alt+z",
+        "command": "filter-syn.undoLastFilter",
+        "when": "editorTextFocus"
+      },
+      {
+        "key": "ctrl+alt+p",
+        "command": "filter-syn.previewFilter",
+        "when": "editorTextFocus"
+      },
+      {
+        "key": "ctrl+alt+a",
+        "command": "filter-syn.aiFilterSuggestion",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "lint": "eslint src --ext ts",
+    "pretest": "npm run compile && npm run lint",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.80.0",
+    "esbuild": "^0.25.8",
+    "eslint": "^9.32.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}
