@@ -9,9 +9,7 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:filter-syn.aiFilterSuggestion",
-    "onCommand:filter-syn.undoLastFilter",
+    "activationEvents": [
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
