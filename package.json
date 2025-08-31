@@ -1,23 +1,29 @@
 {
   "name": "filter-syn",
-  "displayName": "Filter Syn",
-  "description": "Filter selected text or whole files with configurable options and AI suggestions.",
-  "version": "0.0.2",
+  "displayName": "Filter-Syn",
+  "description": "AI-powered code filtering and analysis",
+  "version": "1.0.0",
+  "publisher": "your-name",
   "engines": {
     "vscode": "^1.80.0"
   },
   "categories": [
     "Other"
   ],
-    "activationEvents": [
-    "onStartupFinished"
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onCommand:filter-syn.removeUnusedCode",
+    "onCommand:filter-syn.showUnusedCodePanel",
+    "onCommand:filter-syn.undoLastFilter",
+    "onCommand:filter-syn.aiFilterSuggestion"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "filter-syn.aiFilterSuggestion",
-        "title": "Filter-Syn: AI Filter Suggestion",
+        "command": "filter-syn.removeUnusedCode",
+        "title": "Filter-Syn: Remove Unused Code",
         "category": "Filter-Syn"
       },
       {
@@ -25,82 +31,21 @@
         "title": "Filter-Syn: Undo Last Filter",
         "category": "Filter-Syn"
       }
-    ],
-    "configuration": {
-      "type": "object",
-      "title": "Filter-Syn Settings",
-      "properties": {
-        "filter-syn.enableAI": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable/disable AI-powered suggestions"
-        },
-        "filter-syn.aiServerUrl": {
-          "type": "string",
-          "default": "http://127.0.0.1:5001/v1/predict",
-          "description": "URL of the local AI model server"
-        },
-        "filter-syn.aiMinConfidence": {
-          "type": "number",
-          "default": 0.6,
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Minimum probability to apply a suggested filter"
-        },
-        "filter-syn.aiRequestTimeoutMs": {
-          "type": "number",
-          "default": 3000,
-          "minimum": 500,
-          "maximum": 20000,
-          "description": "Timeout for AI requests in milliseconds"
-        },
-        "filter-syn.removeNumbers": {
-          "type": "boolean",
-          "default": true,
-          "description": "Allow removing numbers"
-        },
-        "filter-syn.removePunctuation": {
-          "type": "boolean",
-          "default": false,
-          "description": "Allow removing punctuation"
-        },
-        "filter-syn.toLowercase": {
-          "type": "boolean",
-          "default": false,
-          "description": "Allow converting to lowercase"
-        }
-      }
-    },
-    "keybindings": [
-      {
-        "key": "ctrl+alt+a",
-        "command": "filter-syn.aiFilterSuggestion",
-        "when": "editorTextFocus"
-      },
-      {
-        "key": "ctrl+alt+z",
-        "command": "filter-syn.undoLastFilter",
-        "when": "editorTextFocus"
-      }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "node esbuild.js",
-    "watch": "node esbuild.js --watch",
-    "lint": "eslint src --ext ts",
-    "pretest": "npm run compile && npm run lint",
-    "test": "node ./out/test/runTest.js"
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "@types/node": "20.x",
-    "@types/vscode": "^1.80.0",
-    "esbuild": "^0.25.8",
-    "eslint": "^9.32.0",
-    "typescript": "^5.9.2"
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^20.5.6",
+    "typescript": "^5.2.2",
+    "vscode": "^1.1.37"
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^3.3.2",
+    "web-tree-sitter": "^0.25.8"
   }
 }

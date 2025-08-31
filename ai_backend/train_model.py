@@ -13,8 +13,10 @@ from sklearn.metrics import classification_report
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
+import os
 
-MODEL_VERSION = "v1.2"
+# ----------------- Constants -----------------
+MODEL_VERSION = "v1.3"  # Incremented version
 ARTIFACT_PATH = f"models/filter_syn_{MODEL_VERSION}.joblib"
 ENCODER_PATH = f"models/encoder_{MODEL_VERSION}.joblib"
 NUMERIC_FEATURES_PATH = f"models/numeric_features_{MODEL_VERSION}.joblib"
@@ -24,6 +26,7 @@ np.random.seed(42)
 
 FILE_TYPES = ["py", "js", "ts", "html", "css", "json", "md"]
 
+# ----------------- Data Class -----------------
 @dataclass
 class Sample:
     file_type: str
@@ -35,6 +38,7 @@ class Sample:
     removePunctuation: int
     toLowercase: int
 
+# ----------------- Data Generation -----------------
 def _gen_one(ft: str) -> Sample:
     avg_lines = {"py": 60, "js": 75, "ts": 80, "html": 120, "css": 90, "json": 40, "md": 70}[ft]
     line_count = max(3, int(np.random.normal(avg_lines, avg_lines * 0.35)))
@@ -53,7 +57,8 @@ def _gen_one(ft: str) -> Sample:
     remove_punct = int(ft in {"js", "html", "md"} and comment_ratio < 0.15)
     to_lower = int(ft in {"md", "json"} or (ft in {"py", "js"} and line_count > 120))
 
-    def flip(bit, p=0.08): 
+    # Add some randomness
+    def flip(bit, p=0.08):
         return int(bit ^ np.random.binomial(1, p))
 
     return Sample(
@@ -67,14 +72,12 @@ def _gen_one(ft: str) -> Sample:
         toLowercase=flip(to_lower),
     )
 
-def build_dataset(n: int = 1200) -> pd.DataFrame:
-    rows: List[Sample] = []
-    for _ in range(n):
-        ft = random.choice(FILE_TYPES)
-        rows.append(_gen_one(ft))
+def build_dataset(n: int = 1500) -> pd.DataFrame:
+    rows: List[Sample] = [_gen_one(random.choice(FILE_TYPES)) for _ in range(n)]
     df = pd.DataFrame([s.__dict__ for s in rows])
     return df
 
+# ----------------- Main Training -----------------
 def main():
     df = build_dataset(1500)
     numeric_features = ["keyword_count", "line_count", "comment_ratio", "unused_imports"]
@@ -82,7 +85,7 @@ def main():
     X = df[["file_type"] + numeric_features]
     y = df[["removeNumbers", "removePunctuation", "toLowercase"]]
 
-    # Encoder for file_type
+    # Encode file_type
     encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
     encoder.fit(X[["file_type"]])
 
@@ -107,23 +110,16 @@ def main():
         ]
     )
 
-    # Train
+    # Train the model
     clf.fit(X, y)
 
+    # Evaluate on training set
     preds = clf.predict(X)
     print(classification_report(y, preds, target_names=y.columns))
 
-    metadata = {
-        "model_version": MODEL_VERSION,
-        "labels": list(y.columns),
-        "features": list(X.columns),
-        "file_types": FILE_TYPES,
-    }
-
-    import os
-
+    # Save artifacts
     os.makedirs("models", exist_ok=True)
-    dump({"pipeline": clf, "metadata": metadata}, ARTIFACT_PATH)
+    dump({"pipeline": clf, "metadata": {"model_version": MODEL_VERSION, "labels": list(y.columns), "features": list(X.columns), "file_types": FILE_TYPES}}, ARTIFACT_PATH)
     dump(encoder, ENCODER_PATH)
     dump(numeric_features, NUMERIC_FEATURES_PATH)
 

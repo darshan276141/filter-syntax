@@ -10,7 +10,7 @@ from joblib import load
 from pathlib import Path
 
 # ----------------- Load versioned artifacts -----------------
-MODEL_VERSION = "v1.2"
+MODEL_VERSION = "v1.3"
 ARTIFACT_PATH = Path(f"models/filter_syn_{MODEL_VERSION}.joblib")
 
 MODEL_BUNDLE = load(ARTIFACT_PATH)
@@ -56,7 +56,6 @@ class Prediction(BaseModel):
 def _instances_to_df(instances: List[Features]) -> pd.DataFrame:
     """Convert list of Features to a DataFrame compatible with the trained pipeline."""
     df = pd.DataFrame([f.dict() for f in instances])
-    # Ensure all columns exist
     for col in ["keyword_count", "line_count", "comment_ratio", "unused_imports", "file_type"]:
         if col not in df:
             df[col] = 0 if col != "file_type" else "py"
@@ -67,6 +66,7 @@ def _predict_proba(instances: List[Features]) -> np.ndarray:
     """Return probability of class 1 for each label per instance."""
     X = _instances_to_df(instances)
     probs = MODEL.predict_proba(X)  # pipeline handles preprocessing
+    # For multi-output classifier, extract probability of class 1 for each label
     probs_matrix = np.column_stack([p[:, 1] for p in probs])
     return probs_matrix
 
