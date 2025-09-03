@@ -1,15 +1,19 @@
-// src/typescriptHandler.ts
+// src/handlers/typescriptHandler.ts
+import * as vscode from 'vscode'; // <-- Import the vscode API
 import { LanguageHandler } from './languageHandler';
 import { analyzeFile, removeUnusedItems, AnalysisResult } from '../codeAnalyzer';
 
 export class TypeScriptHandler implements LanguageHandler {
-    async analyze(filePath: string, content: string): Promise<AnalysisResult> {
-        // Your existing function works perfectly here.
-        return Promise.resolve(analyzeFile(filePath));
+    // Change the parameter from a string to a vscode.Uri object
+    async analyze(fileUri: vscode.Uri, content: string): Promise<AnalysisResult> {
+        // When you call the next function, convert the Uri to a file path
+        // safely using .fsPath
+        return Promise.resolve(analyzeFile(fileUri.fsPath));
     }
 
-    async remove(filePath: string, content: string, itemsToRemove: AnalysisResult): Promise<string> {
-        // Your existing AST-based removal function is used here.
-        return Promise.resolve(removeUnusedItems(filePath, itemsToRemove));
+    // Change the parameter from a string to a vscode.Uri object
+    async remove(fileUri: vscode.Uri, content: string, itemsToRemove: AnalysisResult): Promise<string> {
+        // Convert the Uri to a file path safely using .fsPath
+        return Promise.resolve(removeUnusedItems(fileUri.fsPath, itemsToRemove));
     }
 }

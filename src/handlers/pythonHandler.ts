@@ -1,21 +1,25 @@
 // src/handlers/pythonHandler.ts
+import * as vscode from 'vscode'; // <-- Import vscode
 import { spawn } from 'child_process';
-import * as path from 'path'; // <-- FIX 1: Imports the 'path' module
+import * as path from 'path';
 import { LanguageHandler } from './languageHandler';
 import { AnalysisResult } from '../codeAnalyzer';
 
 export class PythonHandler implements LanguageHandler {
-    // FIX 2: Defines the property to hold the extension's path
     private extensionPath: string;
 
-    // FIX 3: Adds the constructor to accept the path from extension.ts
     constructor(extensionPath: string) {
         this.extensionPath = extensionPath;
     }
 
-    async analyze(filePath: string, content: string): Promise<AnalysisResult> {
+    // FIX 1: Change parameter from a string to a vscode.Uri object
+    async analyze(fileUri: vscode.Uri, content: string): Promise<AnalysisResult> {
         try {
-            const result = await this._runPythonScript(['analyze', filePath]);
+            // FIX 2: Pass the safe .fsPath to the script
+            const result = await this._runPythonScript(['analyze', fileUri.fsPath]);
+            
+            console.log("Raw output from Python script:", result); 
+
             return JSON.parse(result) as AnalysisResult;
         } catch (error) {
             console.error('Python analysis failed:', error);
@@ -23,10 +27,12 @@ export class PythonHandler implements LanguageHandler {
         }
     }
 
-    async remove(filePath: string, content: string, itemsToRemove: AnalysisResult): Promise<string> {
+    // FIX 3: Change parameter from a string to a vscode.Uri object
+    async remove(fileUri: vscode.Uri, content: string, itemsToRemove: AnalysisResult): Promise<string> {
         const unusedNames = itemsToRemove.unusedItems.map(item => item.name);
         try {
-            const newCode = await this._runPythonScript(['remove', filePath], JSON.stringify(unusedNames));
+            // FIX 4: Pass the safe .fsPath to the script
+            const newCode = await this._runPythonScript(['remove', fileUri.fsPath], JSON.stringify(unusedNames));
             return newCode;
         } catch (error) {
             console.error('Python removal failed:', error);
@@ -36,9 +42,10 @@ export class PythonHandler implements LanguageHandler {
 
     private _runPythonScript(args: string[], stdinData?: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            const pythonExecutable = '/home/priyadarshan/vscode-extensions/filter-syn/.venv/bin/python';
-            
-            // This line will now work correctly
+            // FIX 5: Get the Python path from VS Code settings, not a hardcoded string
+            const config = vscode.workspace.getConfiguration('filter-syn');
+            const pythonExecutable = config.get<string>('pythonPath') || 'python';
+
             const scriptPath = path.join(this.extensionPath, 'scripts', 'python_analyzer.py');
 
             const pyProcess = spawn(pythonExecutable, [scriptPath, ...args]);

@@ -1,20 +1,24 @@
+// src/feedback_logger.ts
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-const FEEDBACK_DIR = path.join(__dirname, '..', 'feedback');
-const FEEDBACK_FILE = path.join(FEEDBACK_DIR, 'feedback_log.jsonl');
-
 /**
  * Log feedback entry asynchronously.
  * Each entry is a single line JSON (JSONL format)
+ * @param storagePath The dedicated, writeable storage URI for the extension.
+ * @param entry The feedback object to log.
  */
-export async function logFeedback(entry: Record<string, any>) {
+export async function logFeedback(storagePath: vscode.Uri, entry: Record<string, any>) {
+    // Use the safe storage path provided by VS Code
+    const feedbackDir = storagePath.fsPath;
+    const feedbackFile = path.join(feedbackDir, 'feedback_log.jsonl');
+
     try {
-        await fs.mkdir(FEEDBACK_DIR, { recursive: true });
-        await fs.appendFile(FEEDBACK_FILE, JSON.stringify(entry) + '\n', 'utf-8');
+        await fs.mkdir(feedbackDir, { recursive: true });
+        await fs.appendFile(feedbackFile, JSON.stringify(entry) + '\n', 'utf-8');
     } catch (err) {
         console.error('[Filter-Syn Feedback] Failed to log:', err);
-        vscode.window.showWarningMessage('Filter-Syn: Failed to log feedback.');
+        // Don't show a warning to the user for a background task.
     }
 }

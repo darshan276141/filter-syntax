@@ -38,16 +38,12 @@ async function getActiveEditor(): Promise<vscode.TextEditor | undefined> {
     return editor;
 }
 
-// The 'context' parameter is crucial here
 export function activate(context: vscode.ExtensionContext) {
     console.log('Filter-Syn extension active');
 
     const languageHandlers = new Map<string, LanguageHandler>();
     languageHandlers.set('typescript', new TypeScriptHandler());
     languageHandlers.set('javascript', new TypeScriptHandler());
-
-    // --- THE FIX ---
-    // Pass the extension's absolute path to the PythonHandler's constructor
     languageHandlers.set('python', new PythonHandler(context.extensionPath));
 
     function getHandlerForLanguage(languageId: string): LanguageHandler | undefined {
@@ -68,7 +64,9 @@ export function activate(context: vscode.ExtensionContext) {
                     return vscode.window.showInformationMessage(`Filter-Syn does not support '${doc.languageId}' yet.`);
                 }
                 vscode.window.setStatusBarMessage(`Filter-Syn: Analyzing ${doc.languageId} code…`, 2000);
-                const analysisResult = await handler.analyze(doc.fileName, fullText);
+                
+                const analysisResult = await handler.analyze(doc.uri, fullText);
+                
                 if (analysisResult.unusedItems.length === 0) {
                     return vscode.window.showInformationMessage('No unused code detected.');
                 }
@@ -79,7 +77,16 @@ export function activate(context: vscode.ExtensionContext) {
                     unusedVariables: analysisResult.unusedItems.filter(i => i.type === 'variable').map(i => i.name),
                     unusedClasses: analysisResult.unusedItems.filter(i => i.type === 'class').map(i => i.name),
                 };
+
                 const userSelection = await showAnalysisPanel(context, aiResult);
+
+                // --- THE FIX ---
+                // If the user closed the panel without clicking "Apply", userSelection will be null.
+                // This check stops the command from proceeding with any changes.
+                if (!userSelection) {
+                    return;
+                }
+
                 const currentEditor = vscode.window.visibleTextEditors.find(e => e.document.uri === doc.uri);
                 if (!currentEditor) {
                     return vscode.window.showWarningMessage('The document is no longer visible. Cannot apply changes.');
@@ -92,7 +99,9 @@ export function activate(context: vscode.ExtensionContext) {
                         (userSelection.unusedClasses.includes(item.name) && item.type === 'class')
                     )
                 };
-                const newText = await handler.remove(doc.fileName, fullText, itemsToRemove);
+                
+                const newText = await handler.remove(doc.uri, fullText, itemsToRemove);
+                
                 const range = getFullRange(doc);
                 saveForUndo(range, fullText, aiResult);
                 await replaceText(currentEditor, range, newText); 
@@ -114,9 +123,9 @@ export function activate(context: vscode.ExtensionContext) {
             const last = undoStack.pop()!;
             await replaceText(editor, last.range, last.text);
             if (last.aiSuggestion) {
-                logFeedback({
+                logFeedback(context.globalStorageUri, {
                     timestamp: new Date().toISOString(),
-                    file: editor.document.fileName,
+                    file: editor.document.uri.fsPath,
                     ai_suggestion: last.aiSuggestion,
                     user_override: true,
                 });

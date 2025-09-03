@@ -2,7 +2,7 @@
   "name": "filter-syn",
   "displayName": "Filter-Syn",
   "description": "AI-powered code filtering and analysis",
-  "version": "1.0.1",
+  "version": "1.0.33",
   "publisher": "PriyadarshanKarnati",
   "icon": "images/icon.png",
   "repository": {
@@ -24,9 +24,7 @@
     "onLanguage:javascript",
     "onLanguage:typescript",
     "onCommand:filter-syn.removeUnusedCode",
-    "onCommand:filter-syn.showUnusedCodePanel",
-    "onCommand:filter-syn.undoLastFilter",
-    "onCommand:filter-syn.aiFilterSuggestion"
+    "onCommand:filter-syn.undoLastFilter"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -41,25 +39,36 @@
         "title": "Filter-Syn: Undo Last Filter",
         "category": "Filter-Syn"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Filter-Syn",
+      "properties": {
+        "filter-syn.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "The absolute path to the Python executable to use for analysis."
+        }
+      }
+    }
   },
   "scripts": {
-    "vscode:prepublish": "tsc -p ./",
-    "compile": "tsc -watch -p ./"
+    "vscode:prepublish": "npm run compile:production",
+    "compile": "npm run build && npm run copy-assets",
+    "compile:production": "npm run build:production && npm run copy-assets",
+    "build": "node ./esbuild.js",
+    "build:production": "node ./esbuild.js --production",
+    "copy-assets": "copyfiles -u 1 \"ai_backend/**/*.py\" out && copyfiles -u 1 \"scripts/**/*.py\" out",
+    "watch": "node ./esbuild.js --watch"
   },
   "devDependencies": {
+    "@types/vscode": "^1.80.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.5.6",
-    "esbuild": "^0.25.9",
-    "vscode": "^1.1.37"
-  },
-  "dependencies": {
-     "typescript": "^5.2.2",
-    "@babel/generator": "^7.28.3",
+    "@vscode/test-electron": "^2.3.4",
+    "esbuild": "^0.19.2",
+    "copyfiles": "^2.4.1",
+    "typescript": "^5.2.2",
     "@babel/parser": "^7.28.3",
-    "@babel/traverse": "^7.28.3",
-    "abort-controller": "^3.0.0",
-    "node-fetch": "^3.3.2",
-    "web-tree-sitter": "^0.25.8"
+    "node-fetch": "^3.3.2"
   }
 }

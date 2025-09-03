@@ -1,10 +1,11 @@
-// src/languageHandler.ts
+// src/handlers/languageHandler.ts
+import * as vscode from 'vscode'; // <-- 1. Import vscode
 import { AnalysisResult } from '../codeAnalyzer';
 
 export interface LanguageHandler {
-    /** Analyzes code to find unused items. */
-    analyze(filePath: string, content: string): Promise<AnalysisResult>;
+    // 2. Change 'filePath: string' to 'fileUri: vscode.Uri'
+    analyze(fileUri: vscode.Uri, content: string): Promise<AnalysisResult>;
 
-    /** Removes the specified unused items from the code. */
-    remove(filePath: string, content: string, itemsToRemove: AnalysisResult): Promise<string>;
+    // 3. Do the same for the 'remove' method
+    remove(fileUri: vscode.Uri, content: string, itemsToRemove: AnalysisResult): Promise<string>;
 }
