@@ -1,68 +1,80 @@
-<<<<<<< HEAD
-# filter_syn
-=======
-# Filter Syn
+Filter-Syn: Smart Code Cleaner
 
-**Filter Syn** is a VS Code extension that allows you to quickly filter text or code with customizable options. It supports multiple filters, preview before applying, and undo functionality.
+Filter-Syn is a powerful VS Code extension designed to help you clean up your codebase by effortlessly identifying and filtering unused code snippets, variables, functions, and imports in your files. Keep your projects lean and maintainable with a single command.
 
----
+(Pro-tip: You can use a tool like LICEcap or ScreenToGif to record a short, simple GIF of the extension in action and replace the link above.)
 
-## Features
+✨ Features
 
-- **Filter Selected Text** – Apply filters to the currently selected text.
-- **Filter Whole File** – Apply filters to the entire file.
-- **Filter with Options** – Choose which filters to apply via QuickPick.
-- **Undo Last Filter** – Revert the last applied filter.
-- **Preview Filtered Text** – Preview changes before applying.
+    Identify Unused Variables & Functions: Scans your active file to detect declared variables and functions that are never used.
 
----
+    Clean Unused Imports: Automatically detects and removes unused import statements in languages like JavaScript, TypeScript, and Python.
 
-## Filters
+    Configurable Modes: Choose whether to highlight unused code for review or remove it directly to clean up the file instantly.
 
-1. **Remove Numbers** – Removes all digits (0-9) from the text.  
-2. **Remove Punctuation** – Removes punctuation marks like `.,/#!$%^&*;:{}=-_()`  
-3. **Convert to Lowercase** – Converts text to lowercase.
+    Quick & Efficient: Runs on-demand to avoid unnecessary background processing, ensuring a smooth coding experience.
 
-> Filters can be applied individually or combined using the Multi-Option QuickPick.
+    Easy to Use: Integrates directly into the VS Code Command Palette for quick access.
 
----
+🚀 Installation
 
-## Installation
+    Open Visual Studio Code.
 
-1. Clone or download the repository.  
-2. Run `npm install` in the project directory.  
-3. Press `F5` in VS Code to launch the extension in a new Extension Development Host window.
+    Go to the Extensions view (Ctrl+Shift+X or Cmd+Shift+X).
 
----
+    Search for Filter-Syn.
 
-## Usage
+    Click Install.
 
-### Commands & Keybindings
+⚙️ How to Use
 
-| Command | Keybinding | Description |
-|---------|------------|-------------|
-| Filter Selected Text | `Ctrl+Alt+F` | Filters selected text in the editor |
-| Filter Whole File | `Ctrl+Alt+O` | Filters entire file |
-| Filter with Options | `Ctrl+Alt+O` | Choose which filters to apply |
-| Undo Last Filter | `Ctrl+Alt+Z` | Reverts last filter applied |
-| Preview Filtered Text | `Ctrl+Alt+P` | Shows a preview of filtered text and option to apply |
+Using Filter-Syn is simple and straightforward:
 
-### Example Workflow
+    Open any file you want to clean up in VS Code.
 
-1. Select text in your editor.  
-2. Press `Ctrl+Alt+O` to choose filters.  
-3. Apply filters and confirm in the info popup.  
-4. Use `Ctrl+Alt+P` to preview changes before applying.  
-5. Use `Ctrl+Alt+Z` to undo the last filter if needed.
+    Open the Command Palette (Ctrl+Shift+P or Cmd+Shift+P).
 
----
+    Type Filter-Syn: Filter Unused Code and press Enter.
 
-## Settings
+    The extension will analyze the current file and either highlight or remove the unused code based on your configured settings.
 
-Customize default filters in VS Code settings:
+🔧 Extension Settings
 
-```json
-"filter-syn.removeNumbers": true,
-"filter-syn.removePunctuation": false,
-"filter-syn.toLowercase": false
->>>>>>> 1707bd2 (Initial commit: Filter-Syn VS Code extension with AI filter backend)
+You can customize the behavior of Filter-Syn by modifying its settings in VS Code. Go to File > Preferences > Settings (Ctrl+, or Cmd+,), and search for filter-syn.
+
+    filter-syn.mode:
+
+        highlight (default): Marks unused code with a highlight. This is the safest option, allowing you to review before deleting.
+
+        remove: Directly removes the unused code from the file. Use with caution and ensure your code is under version control.
+
+    filter-syn.showNotificationOnComplete:
+
+        true (default): Shows a small notification in the bottom-right corner when the filtering process is complete.
+
+        false: Disables the completion notification.
+
+⚠️ Known Issues
+
+    Currently, the analysis is limited to the scope of a single file. It does not detect if a function exported from one file is used in another.
+
+    Complex dynamic code or metaprogramming might result in false positives. Always review changes before committing.
+
+Please report any bugs or suggest features on the GitHub Issues page.
+
+📄 Release Notes
+
+1.0.0
+
+    Initial release of Filter-Syn.
+
+    Core functionality to detect and filter unused variables, functions, and imports.
+
+    Added highlight and remove modes.
+
+🤝 Contributing
+
+Contributions are always welcome! If you'd like to help improve Filter-Syn, please feel free to fork the repository, make your changes, and submit a pull request.
+
+
+Happy Coding!

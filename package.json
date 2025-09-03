@@ -3,12 +3,18 @@
   "displayName": "Filter-Syn",
   "description": "AI-powered code filtering and analysis",
   "version": "1.0.0",
-  "publisher": "your-name",
+  "publisher": "Priyadarshan",
+  "icon": "images/icon.png",
+  "galleryBanner.color": {
+    "color": "#21214c",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.80.0"
   },
   "categories": [
-    "Other"
+    "Programming Languages",
+    "Linters"
   ],
   "activationEvents": [
     "onLanguage:javascript",
