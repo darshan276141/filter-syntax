@@ -5,6 +5,10 @@
   "version": "1.0.0",
   "publisher": "Priyadarshan",
   "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darshan276141/filter-syntax.git"
+  },
   "galleryBanner.color": {
     "color": "#21214c",
     "theme": "dark"
