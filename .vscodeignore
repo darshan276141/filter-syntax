@@ -1,13 +1,19 @@
+# Python virtual environment
+.venv/**
+
+# AI backend and other build outputs
+ai_backend/**
+dist/**
+feedback/**
+
+# Standard VS Code extension ignores
 .vscode/**
-.vscode-test/**
+.vscode-test*/**
 node_modules/**
 src/**
+.git/**
 .gitignore
-.yarnrc
+tsconfig.json
 esbuild.js
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/eslint.config.mjs
 **/*.map
 **/*.ts
-**/.vscode-test.*
