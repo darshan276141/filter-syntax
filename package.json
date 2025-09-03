@@ -2,7 +2,7 @@
   "name": "filter-syn",
   "displayName": "Filter-Syn",
   "description": "AI-powered code filtering and analysis",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "PriyadarshanKarnati",
   "icon": "images/icon.png",
   "repository": {
@@ -51,10 +51,10 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.5.6",
     "esbuild": "^0.25.9",
-    "typescript": "^5.2.2",
     "vscode": "^1.1.37"
   },
   "dependencies": {
+     "typescript": "^5.2.2",
     "@babel/generator": "^7.28.3",
     "@babel/parser": "^7.28.3",
     "@babel/traverse": "^7.28.3",
