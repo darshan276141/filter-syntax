@@ -1,80 +1,67 @@
-Filter-Syn: Smart Code Cleaner
+Filter-Syn: AI-Powered Code Cleaner
 
-Filter-Syn is a powerful VS Code extension designed to help you clean up your codebase by effortlessly identifying and filtering unused code snippets, variables, functions, and imports in your files. Keep your projects lean and maintainable with a single command.
+Filter-Syn is a powerful VS Code extension designed to help you clean up your codebase by effortlessly identifying and filtering unused code. It analyzes your JavaScript, TypeScript, and Python files to find unused imports, functions, variables, and classes, helping you keep your projects lean, readable, and maintainable.
+Key Features
 
-(Pro-tip: You can use a tool like LICEcap or ScreenToGif to record a short, simple GIF of the extension in action and replace the link above.)
+    Multi-Language Support: Analyzes JavaScript, TypeScript, and Python files.
 
-✨ Features
+    Comprehensive Analysis: Detects unused imports, functions, variables, and classes.
 
-    Identify Unused Variables & Functions: Scans your active file to detect declared variables and functions that are never used.
+    Interactive UI Panel: Reviews all detected items in a clear UI panel and lets you choose which ones to remove.
 
-    Clean Unused Imports: Automatically detects and removes unused import statements in languages like JavaScript, TypeScript, and Python.
+    Safe Undo: Made a mistake? A simple command lets you undo the last cleaning operation.
 
-    Configurable Modes: Choose whether to highlight unused code for review or remove it directly to clean up the file instantly.
+    AI-Powered (Future): Built with a foundation to integrate AI suggestions for more complex refactoring tasks.
 
-    Quick & Efficient: Runs on-demand to avoid unnecessary background processing, ensuring a smooth coding experience.
-
-    Easy to Use: Integrates directly into the VS Code Command Palette for quick access.
-
-🚀 Installation
+Installation
 
     Open Visual Studio Code.
 
-    Go to the Extensions view (Ctrl+Shift+X or Cmd+Shift+X).
+    Go to the Extensions view (Ctrl+Shift+X).
 
     Search for Filter-Syn.
 
-    Click Install.
+    Click "Install".
 
-⚙️ How to Use
+How to Use
 
-Using Filter-Syn is simple and straightforward:
-
-    Open any file you want to clean up in VS Code.
+    Open a JavaScript, TypeScript, or Python file in the editor.
 
     Open the Command Palette (Ctrl+Shift+P or Cmd+Shift+P).
 
-    Type Filter-Syn: Filter Unused Code and press Enter.
+    Type Filter-Syn: Remove Unused Code and press Enter.
 
-    The extension will analyze the current file and either highlight or remove the unused code based on your configured settings.
+    An analysis panel will open beside your editor. Uncheck any items you wish to keep.
 
-🔧 Extension Settings
+    Click the "Apply Selected" button to remove the checked items from your code.
 
-You can customize the behavior of Filter-Syn by modifying its settings in VS Code. Go to File > Preferences > Settings (Ctrl+, or Cmd+,), and search for filter-syn.
+Configuration
 
-    filter-syn.mode:
+For the Python analysis to work correctly, the extension needs to know where your Python executable is located.
 
-        highlight (default): Marks unused code with a highlight. This is the safest option, allowing you to review before deleting.
+Important for Python Users:
+If the extension has trouble analyzing Python files, you may need to set the path to your Python interpreter:
 
-        remove: Directly removes the unused code from the file. Use with caution and ensure your code is under version control.
+    Open VS Code Settings (Ctrl + ,).
 
-    filter-syn.showNotificationOnComplete:
+    Search for filter-syn.pythonPath.
 
-        true (default): Shows a small notification in the bottom-right corner when the filtering process is complete.
+    Enter the absolute path to your desired Python executable.
 
-        false: Disables the completion notification.
+Your Python environment must also have the libcst library installed. The extension will show a helpful error message if it's missing. You can install it by running pip install libcst in your terminal.
+Available Commands
 
-⚠️ Known Issues
+    Filter-Syn: Remove Unused Code
 
-    Currently, the analysis is limited to the scope of a single file. It does not detect if a function exported from one file is used in another.
+        This command analyzes the active file and opens the selection panel for you to choose which code to remove.
 
-    Complex dynamic code or metaprogramming might result in false positives. Always review changes before committing.
+    Filter-Syn: Undo Last Filter
 
-Please report any bugs or suggest features on the GitHub Issues page.
+        This command reverts the last "Remove Unused Code" operation you performed.
 
-📄 Release Notes
+Contributing
 
-1.0.0
+Contributions are welcome! If you have ideas for new features, find a bug, or want to improve the code, please feel free to open an issue or submit a pull request on the GitHub repository.
+License
 
-    Initial release of Filter-Syn.
-
-    Core functionality to detect and filter unused variables, functions, and imports.
-
-    Added highlight and remove modes.
-
-🤝 Contributing
-
-Contributions are always welcome! If you'd like to help improve Filter-Syn, please feel free to fork the repository, make your changes, and submit a pull request.
-
-
-Happy Coding!
+This project is licensed under the MIT License.
